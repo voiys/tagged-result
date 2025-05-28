@@ -44,17 +44,23 @@
 		"build:types": "tsc -p tsconfig.esm.json --emitDeclarationOnly",
 		"build:esm": "tsc -p tsconfig.esm.json",
 		"build:cjs": "tsc -p tsconfig.cjs.json && mv dist/cjs/index.js dist/cjs/index.cjs",
-		"build": "npm run clean && npm run lint:fix && npm run build:types && npm run build:esm && npm run build:cjs",
-		"test": "echo \"Error: no test specified\" && exit 0",
+		"build": "npm run clean && npm run lint:fix && npm run test && npm run build:types && npm run build:esm && npm run build:cjs",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"test:ui": "vitest --ui",
+		"test:coverage": "vitest run --coverage",
 		"lint": "biome check .",
 		"lint:fix": "biome check --write .",
 		"format": "biome format --write .",
-		"prepublishOnly": "npm run build && npm run test"
+		"prepublishOnly": "npm run build"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "1.9.4",
 		"@types/node": "^20.0.0",
-		"typescript": "^5.0.0"
+		"@vitest/coverage-v8": "^3.1.4",
+		"@vitest/ui": "^3.1.4",
+		"typescript": "^5.8.3",
+		"vitest": "^3.1.4"
 	},
 	"publishConfig": {
 		"access": "public"
