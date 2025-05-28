@@ -1,0 +1,62 @@
+{
+	"name": "@voiys/tagged-result",
+	"version": "1.0.0",
+	"description": "A TypeScript utility for creating tagged result unions (success/error).",
+	"author": "voiys",
+	"license": "Unlicense",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/voiys/tagged-result.git"
+	},
+	"bugs": {
+		"url": "https://github.com/voiys/tagged-result/issues"
+	},
+	"homepage": "https://github.com/voiys/tagged-result#readme",
+	"keywords": [
+		"voiys",
+		"typescript",
+		"result",
+		"tagged-union",
+		"tagged-result",
+		"either",
+		"functional",
+		"error-handling"
+	],
+	"type": "module",
+	"main": "./dist/cjs/index.cjs",
+	"module": "./dist/esm/index.js",
+	"types": "./dist/types/index.d.ts",
+	"exports": {
+		".": {
+			"import": {
+				"types": "./dist/types/index.d.ts",
+				"default": "./dist/esm/index.js"
+			},
+			"require": {
+				"types": "./dist/types/index.d.ts",
+				"default": "./dist/cjs/index.cjs"
+			}
+		}
+	},
+	"files": ["dist", "LICENSE", "README.md"],
+	"scripts": {
+		"clean": "rm -rf dist",
+		"build:types": "tsc -p tsconfig.esm.json --emitDeclarationOnly",
+		"build:esm": "tsc -p tsconfig.esm.json",
+		"build:cjs": "tsc -p tsconfig.cjs.json && mv dist/cjs/index.js dist/cjs/index.cjs",
+		"build": "npm run clean && npm run lint:fix && npm run build:types && npm run build:esm && npm run build:cjs",
+		"test": "echo \"Error: no test specified\" && exit 0",
+		"lint": "biome check .",
+		"lint:fix": "biome check --write .",
+		"format": "biome format --write .",
+		"prepublishOnly": "npm run build && npm run test"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "1.9.4",
+		"@types/node": "^20.0.0",
+		"typescript": "^5.0.0"
+	},
+	"publishConfig": {
+		"access": "public"
+	}
+}
