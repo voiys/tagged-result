@@ -1,0 +1,15 @@
+{
+	"compilerOptions": {
+		"strict": true,
+		"declaration": true,
+		"declarationMap": true,
+		"sourceMap": true,
+		"esModuleInterop": true,
+		"forceConsistentCasingInFileNames": true,
+		"skipLibCheck": true,
+		"resolveJsonModule": true,
+		"isolatedModules": true,
+		"allowSyntheticDefaultImports": true
+	},
+	"include": ["src"]
+}
