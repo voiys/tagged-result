@@ -158,3 +158,410 @@ describe("Result utility", () => {
 		});
 	});
 });
+
+describe("README Examples", () => {
+	describe("Quick Start Examples", () => {
+		test("should work with generic success/error (simple overload)", () => {
+			const success = Result.ok({ id: 123, name: "Alice" });
+			const error = Result.err({ message: "Something went wrong" });
+
+			expect(success.type).toBe("success");
+			expect(success.data).toEqual({ id: 123, name: "Alice" });
+
+			expect(error.type).toBe("error");
+			expect(error.data).toEqual({ message: "Something went wrong" });
+		});
+
+		test("should work with custom tagged variants (descriptive overload)", () => {
+			const tagged = Result.ok("USER_CREATED", { id: 123, name: "Alice" });
+			const failure = Result.err("VALIDATION_FAILED", { field: "email" });
+
+			expect(tagged.type).toBe("USER_CREATED");
+			expect(tagged.data).toEqual({ id: 123, name: "Alice" });
+
+			expect(failure.type).toBe("VALIDATION_FAILED");
+			expect(failure.data).toEqual({ field: "email" });
+
+			// TypeScript narrows automatically
+			if (tagged.type === "USER_CREATED") {
+				expect(tagged.data.name).toBe("Alice"); // TypeScript knows this is string
+			}
+		});
+	});
+
+	describe("API Reference Examples", () => {
+		test("Result.ok with default and custom types", () => {
+			// Using default "success" type
+			const result1 = Result.ok({ value: 42 });
+			expect(result1.type).toBe("success");
+			expect(result1.data).toEqual({ value: 42 });
+
+			// Using custom type
+			const result2 = Result.ok("DATA_LOADED", { items: [] });
+			expect(result2.type).toBe("DATA_LOADED");
+			expect(result2.data).toEqual({ items: [] });
+		});
+
+		test("Result.err with default and custom types", () => {
+			// Using default "error" type
+			const result1 = Result.err({ message: "Something went wrong" });
+			expect(result1.type).toBe("error");
+			expect(result1.data).toEqual({ message: "Something went wrong" });
+
+			// Using custom type
+			const result2 = Result.err("NOT_FOUND", { resourceId: "user-123" });
+			expect(result2.type).toBe("NOT_FOUND");
+			expect(result2.data).toEqual({ resourceId: "user-123" });
+		});
+	});
+
+	describe("Synchronous Examples", () => {
+		// Let TypeScript infer the return type
+		function parseNumber(input: string) {
+			const num = Number.parseInt(input, 10);
+			if (Number.isNaN(num)) {
+				return Result.err("INVALID_NUMBER", { input });
+			}
+			return Result.ok("PARSED", { value: num });
+		}
+
+		interface UserData {
+			id?: unknown;
+			name?: string;
+		}
+
+		// Or force a specific return type
+		function validateUser(
+			data: UserData,
+		):
+			| ResultUnion<"VALID", { id: number }>
+			| ResultUnion<"INVALID", { error: string }> {
+			if (!data.id || typeof data.id !== "number") {
+				return Result.err("INVALID", { error: "ID must be a number" });
+			}
+			return Result.ok("VALID", { id: data.id });
+		}
+
+		test("parseNumber function from README", () => {
+			const validResult = parseNumber("42");
+			const invalidResult = parseNumber("abc");
+
+			expect(validResult.type).toBe("PARSED");
+			if (validResult.type === "PARSED") {
+				expect(validResult.data.value).toBe(42);
+			}
+
+			expect(invalidResult.type).toBe("INVALID_NUMBER");
+			if (invalidResult.type === "INVALID_NUMBER") {
+				expect(invalidResult.data.input).toBe("abc");
+			}
+		});
+
+		test("validateUser function from README", () => {
+			const validData = { id: 123, name: "Alice" };
+			const invalidData = { name: "Bob" };
+
+			const validResult = validateUser(validData);
+			const invalidResult = validateUser(invalidData);
+
+			expect(validResult.type).toBe("VALID");
+			if (validResult.type === "VALID") {
+				expect(validResult.data.id).toBe(123);
+			}
+
+			expect(invalidResult.type).toBe("INVALID");
+			if (invalidResult.type === "INVALID") {
+				expect(invalidResult.data.error).toBe("ID must be a number");
+			}
+		});
+	});
+
+	describe("Asynchronous Examples (Mocked)", () => {
+		interface MockResponse {
+			ok: boolean;
+			status: number;
+			data?: unknown;
+		}
+
+		// Let TypeScript infer the return type
+		async function fetchData(url: string, mockResponse: MockResponse) {
+			try {
+				// Simulate fetch behavior
+				const response = mockResponse;
+				if (!response.ok) {
+					return Result.err("HTTP_ERROR", { status: response.status });
+				}
+				const data = mockResponse.data || { id: 123, name: "Test Data" };
+				return Result.ok("SUCCESS", data);
+			} catch (error) {
+				return Result.err("NETWORK_ERROR", {
+					message: (error as Error).message,
+				});
+			}
+		}
+
+		interface User {
+			id: number;
+			name: string;
+		}
+
+		interface GetUserMockResponse {
+			status: number;
+			data?: User;
+			shouldThrow?: boolean;
+		}
+
+		// Or force a specific return type
+		async function getUser(
+			id: number,
+			mockResponse: GetUserMockResponse,
+		): Promise<
+			| ResultUnion<"USER_FOUND", User>
+			| ResultUnion<"NOT_FOUND" | "ERROR", { message: string }>
+		> {
+			try {
+				if (mockResponse.shouldThrow) {
+					throw new Error("Network error");
+				}
+
+				if (mockResponse.status === 404) {
+					return Result.err("NOT_FOUND", { message: "User not found" });
+				}
+				if (mockResponse.status !== 200) {
+					return Result.err("ERROR", { message: "Failed to fetch user" });
+				}
+
+				const user = mockResponse.data || { id, name: "Test User" };
+				return Result.ok("USER_FOUND", user);
+			} catch (error) {
+				return Result.err("ERROR", { message: (error as Error).message });
+			}
+		}
+
+		test("fetchData function from README", async () => {
+			// Test successful response
+			const successResult = await fetchData("http://example.com", {
+				ok: true,
+				status: 200,
+				data: { message: "Success" },
+			});
+			expect(successResult.type).toBe("SUCCESS");
+			if (successResult.type === "SUCCESS") {
+				expect(successResult.data).toEqual({ message: "Success" });
+			}
+
+			// Test HTTP error
+			const httpErrorResult = await fetchData("http://example.com", {
+				ok: false,
+				status: 500,
+			});
+			expect(httpErrorResult.type).toBe("HTTP_ERROR");
+			if (httpErrorResult.type === "HTTP_ERROR") {
+				expect(httpErrorResult.data.status).toBe(500);
+			}
+		});
+
+		test("getUser function from README", async () => {
+			// Test successful user fetch
+			const userResult = await getUser(123, {
+				status: 200,
+				data: { id: 123, name: "Alice" },
+			});
+			expect(userResult.type).toBe("USER_FOUND");
+			if (userResult.type === "USER_FOUND") {
+				expect(userResult.data.name).toBe("Alice");
+			}
+
+			// Test user not found
+			const notFoundResult = await getUser(999, { status: 404 });
+			expect(notFoundResult.type).toBe("NOT_FOUND");
+			if (notFoundResult.type === "NOT_FOUND") {
+				expect(notFoundResult.data.message).toBe("User not found");
+			}
+
+			// Test general error
+			const errorResult = await getUser(123, { status: 500 });
+			expect(errorResult.type).toBe("ERROR");
+			if (errorResult.type === "ERROR") {
+				expect(errorResult.data.message).toBe("Failed to fetch user");
+			}
+
+			// Test network error
+			const networkErrorResult = await getUser(123, {
+				status: 200,
+				shouldThrow: true,
+			});
+			expect(networkErrorResult.type).toBe("ERROR");
+			if (networkErrorResult.type === "ERROR") {
+				expect(networkErrorResult.data.message).toBe("Network error");
+			}
+		});
+
+		test("switch statement usage from README", async () => {
+			const userResult = await getUser(123, {
+				status: 200,
+				data: { id: 123, name: "Test User" },
+			});
+
+			let result: User | string;
+			switch (userResult.type) {
+				case "USER_FOUND":
+					result = userResult.data; // TypeScript knows this is User
+					break;
+				case "NOT_FOUND":
+				case "ERROR":
+					result = userResult.data.message;
+					break;
+				default: {
+					// TypeScript will error if we miss a case
+					const exhaustive: never = userResult;
+					throw new Error("Unhandled result type");
+				}
+			}
+
+			expect(result).toEqual({ id: 123, name: "Test User" });
+		});
+	});
+
+	describe("Best Practices Examples", () => {
+		test("descriptive tags vs generic tags", () => {
+			// ❌ Not descriptive (but still works)
+			const genericError = Result.err("error", { message: "Failed" });
+			expect(genericError.type).toBe("error");
+
+			// ✅ Descriptive and actionable
+			const descriptiveError = Result.err("VALIDATION_FAILED", {
+				field: "email",
+				message: "Invalid email format",
+			});
+			expect(descriptiveError.type).toBe("VALIDATION_FAILED");
+			expect(descriptiveError.data.field).toBe("email");
+		});
+
+		test("grouped related result types", () => {
+			interface User {
+				id: number;
+				name: string;
+			}
+
+			type UserOperationResult =
+				| ResultUnion<"USER_CREATED" | "USER_UPDATED", User>
+				| ResultUnion<
+						"USER_NOT_FOUND" | "VALIDATION_ERROR" | "PERMISSION_DENIED",
+						{ message: string }
+				  >;
+
+			const createdResult: UserOperationResult = Result.ok("USER_CREATED", {
+				id: 1,
+				name: "Alice",
+			});
+			const errorResult: UserOperationResult = Result.err("VALIDATION_ERROR", {
+				message: "Invalid data",
+			});
+
+			expect(createdResult.type).toBe("USER_CREATED");
+			expect(errorResult.type).toBe("VALIDATION_ERROR");
+		});
+
+		test("exhaustive checking with switch statements", () => {
+			type UserOperationResult =
+				| ResultUnion<
+						"USER_CREATED" | "USER_UPDATED",
+						{ id: number; name: string }
+				  >
+				| ResultUnion<
+						"USER_NOT_FOUND" | "VALIDATION_ERROR" | "PERMISSION_DENIED",
+						{ message: string }
+				  >;
+
+			function handleResult(result: UserOperationResult) {
+				switch (result.type) {
+					case "USER_CREATED":
+					case "USER_UPDATED":
+						return result.data; // TypeScript knows this is User
+					case "USER_NOT_FOUND":
+					case "VALIDATION_ERROR":
+					case "PERMISSION_DENIED":
+						throw new Error(result.data.message);
+					default: {
+						// TypeScript will error if we miss a case
+						const exhaustive: never = result;
+						throw new Error("Unhandled result type");
+					}
+				}
+			}
+
+			const successResult: UserOperationResult = Result.ok("USER_CREATED", {
+				id: 1,
+				name: "Alice",
+			});
+			const errorResult: UserOperationResult = Result.err("VALIDATION_ERROR", {
+				message: "Invalid email",
+			});
+
+			expect(handleResult(successResult)).toEqual({ id: 1, name: "Alice" });
+			expect(() => handleResult(errorResult)).toThrow("Invalid email");
+		});
+
+		test("chaining operations safely", async () => {
+			interface User {
+				id: number;
+				name: string;
+			}
+
+			interface UserData {
+				id: number;
+				name: string;
+				email: string;
+			}
+
+			// Mock functions for the workflow
+			async function fetchUser(userId: number) {
+				if (userId === 999) {
+					return Result.err("API_ERROR", { message: "User not found" });
+				}
+				return Result.ok("API_SUCCESS", {
+					data: { id: userId, name: "Test User", email: "invalid-email" },
+				});
+			}
+
+			function validateUser(
+				userData: UserData,
+			):
+				| ResultUnion<"USER_VALID", User>
+				| ResultUnion<"USER_INVALID", { message: string }> {
+				if (!userData.email || !userData.email.includes("@")) {
+					return Result.err("USER_INVALID", { message: "Invalid email" });
+				}
+				return Result.ok("USER_VALID", {
+					id: userData.id,
+					name: userData.name,
+				});
+			}
+
+			async function processUserWorkflow(userId: number) {
+				const userResult = await fetchUser(userId);
+				if (userResult.type !== "API_SUCCESS") {
+					return userResult; // Propagate error
+				}
+
+				const validationResult = validateUser(userResult.data.data);
+				if (validationResult.type !== "USER_VALID") {
+					return validationResult; // Propagate validation error
+				}
+
+				// Continue with valid user...
+				return Result.ok("WORKFLOW_COMPLETE", validationResult.data);
+			}
+
+			// Test successful workflow
+			const successResult = await processUserWorkflow(123);
+			// This will fail validation due to invalid email in mock data
+			expect(successResult.type).toBe("USER_INVALID");
+
+			// Test API error propagation
+			const errorResult = await processUserWorkflow(999);
+			expect(errorResult.type).toBe("API_ERROR");
+		});
+	});
+});
