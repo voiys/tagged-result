@@ -35,16 +35,16 @@ bun add @voiys/tagged-result
 ```typescript
 import { Result, ResultUnion } from '@voiys/tagged-result';
 
-// Generic success/error (simple overload)
+// Default success/error types
 const success = Result.ok({ id: 123, name: "Alice" });
 const error = Result.err({ message: "Something went wrong" });
 
-// Custom tagged variants (descriptive overload)
-const tagged = Result.ok("USER_CREATED", { id: 123, name: "Alice" });
-const failure = Result.err("VALIDATION_FAILED", { field: "email" });
+// Custom tagged variants (must follow pattern)
+const tagged = Result.ok("SUCCESS_USER_CREATED", { id: 123, name: "Alice" });
+const failure = Result.err("ERROR_VALIDATION_FAILED", { field: "email" });
 
 // TypeScript narrows automatically
-if (tagged.type === "USER_CREATED") {
+if (tagged.type === "SUCCESS_USER_CREATED") {
   console.log(tagged.data.name); // TypeScript knows this is string
 }
 ```
@@ -53,30 +53,30 @@ if (tagged.type === "USER_CREATED") {
 
 ### `Result.ok(data)` & `Result.ok(type, data)`
 
-Creates a successful result with optional custom type tag.
+Creates a successful result with optional custom type tag following the pattern `"SUCCESS"` or `"SUCCESS_${Uppercase<string>}"`.
 
 ```typescript
-// Using default "success" type
+// Using default "SUCCESS" type
 const result1 = Result.ok({ value: 42 });
-// Type: ResultUnion<"success", { value: number }>
+// Type: ResultUnion<"SUCCESS", { value: number }>
 
-// Using custom type
-const result2 = Result.ok("DATA_LOADED", { items: [] });
-// Type: ResultUnion<"DATA_LOADED", { items: any[] }>
+// Using custom type (must follow SUCCESS pattern)
+const result2 = Result.ok("SUCCESS_DATA_LOADED", { items: [] });
+// Type: ResultUnion<"SUCCESS_DATA_LOADED", { items: any[] }>
 ```
 
 ### `Result.err(data)` & `Result.err(type, data)`
 
-Creates an error result with optional custom type tag.
+Creates an error result with optional custom type tag following the pattern `"ERROR"` or `"ERROR_${Uppercase<string>}"`.
 
 ```typescript
-// Using default "error" type
+// Using default "ERROR" type
 const result1 = Result.err({ message: "Something went wrong" });
-// Type: ResultUnion<"error", { message: string }>
+// Type: ResultUnion<"ERROR", { message: string }>
 
-// Using custom type
-const result2 = Result.err("NOT_FOUND", { resourceId: "user-123" });
-// Type: ResultUnion<"NOT_FOUND", { resourceId: string }>
+// Using custom type (must follow ERROR pattern)
+const result2 = Result.err("ERROR_NOT_FOUND", { resourceId: "user-123" });
+// Type: ResultUnion<"ERROR_NOT_FOUND", { resourceId: string }>
 ```
 
 ### `ResultUnion<T, D>`
@@ -84,7 +84,7 @@ const result2 = Result.err("NOT_FOUND", { resourceId: "user-123" });
 The core type representing a tagged result.
 
 ```typescript
-type MyResult = ResultUnion<"SUCCESS" | "FAILED", { message: string }>;
+type MyResult = ResultUnion<"SUCCESS" | "ERROR_FAILED", { message: string }>;
 ```
 
 ## 🔄 Synchronous Example
@@ -96,22 +96,22 @@ import { Result, ResultUnion } from '@voiys/tagged-result';
 function parseNumber(input: string) {
   const num = parseInt(input);
   if (isNaN(num)) {
-    return Result.err("INVALID_NUMBER", { input });
+    return Result.err("ERROR_INVALID_NUMBER", { input });
   }
-  return Result.ok("PARSED", { value: num });
+  return Result.ok("SUCCESS_PARSED", { value: num });
 }
 
 // Or force a specific return type
-function validateUser(data: any): ResultUnion<"VALID", { id: number }> | ResultUnion<"INVALID", { error: string }> {
+function validateUser(data: any): ResultUnion<"SUCCESS_VALID", { id: number }> | ResultUnion<"ERROR_INVALID", { error: string }> {
   if (!data.id || typeof data.id !== 'number') {
-    return Result.err("INVALID", { error: "ID must be a number" });
+    return Result.err("ERROR_INVALID", { error: "ID must be a number" });
   }
-  return Result.ok("VALID", { id: data.id });
+  return Result.ok("SUCCESS_VALID", { id: data.id });
 }
 
 // Usage
 const result = parseNumber("42");
-if (result.type === "PARSED") {
+if (result.type === "SUCCESS_PARSED") {
   console.log(result.data.value); // TypeScript knows this is number
 }
 ```
@@ -124,27 +124,27 @@ async function fetchData(url: string) {
   try {
     const response = await fetch(url);
     if (!response.ok) {
-      return Result.err("HTTP_ERROR", { status: response.status });
+      return Result.err("ERROR_HTTP", { status: response.status });
     }
     const data = await response.json();
     return Result.ok("SUCCESS", data);
   } catch (error) {
-    return Result.err("NETWORK_ERROR", { message: error.message });
+    return Result.err("ERROR_NETWORK", { message: error.message });
   }
 }
 
 // Or force a specific return type
-async function getUser(id: number): Promise<ResultUnion<"USER_FOUND", User> | ResultUnion<"NOT_FOUND" | "ERROR", { message: string }>> {
+async function getUser(id: number): Promise<ResultUnion<"SUCCESS_USER_FOUND", User> | ResultUnion<"ERROR_NOT_FOUND" | "ERROR", { message: string }>> {
   try {
     const response = await fetch(`/users/${id}`);
     if (response.status === 404) {
-      return Result.err("NOT_FOUND", { message: "User not found" });
+      return Result.err("ERROR_NOT_FOUND", { message: "User not found" });
     }
     if (!response.ok) {
       return Result.err("ERROR", { message: "Failed to fetch user" });
     }
     const user = await response.json();
-    return Result.ok("USER_FOUND", user);
+    return Result.ok("SUCCESS_USER_FOUND", user);
   } catch (error) {
     return Result.err("ERROR", { message: error.message });
   }
@@ -153,10 +153,10 @@ async function getUser(id: number): Promise<ResultUnion<"USER_FOUND", User> | Re
 // Usage
 const userResult = await getUser(123);
 switch (userResult.type) {
-  case "USER_FOUND":
+  case "SUCCESS_USER_FOUND":
     console.log('User:', userResult.data); // TypeScript knows this is User
     break;
-  case "NOT_FOUND":
+  case "ERROR_NOT_FOUND":
   case "ERROR":
     console.error(userResult.data.message);
     break;
@@ -169,18 +169,18 @@ switch (userResult.type) {
 
 ```typescript
 // ❌ Not descriptive
-Result.err("error", { message: "Failed" });
+Result.err("ERROR", { message: "Failed" });
 
-// ✅ Descriptive and actionable
-Result.err("VALIDATION_FAILED", { field: "email", message: "Invalid email format" });
+// ✅ Descriptive and actionable (follows required pattern)
+Result.err("ERROR_VALIDATION_FAILED", { field: "email", message: "Invalid email format" });
 ```
 
 ### 2. Group Related Result Types 📦
 
 ```typescript
 type UserOperationResult = 
-  | ResultUnion<"USER_CREATED" | "USER_UPDATED", User>
-  | ResultUnion<"USER_NOT_FOUND" | "VALIDATION_ERROR" | "PERMISSION_DENIED", { message: string }>;
+  | ResultUnion<"SUCCESS_USER_CREATED" | "SUCCESS_USER_UPDATED", User>
+  | ResultUnion<"ERROR_USER_NOT_FOUND" | "ERROR_VALIDATION" | "ERROR_PERMISSION_DENIED", { message: string }>;
 ```
 
 ### 3. Use Switch Statements for Exhaustive Checking ✅
@@ -188,12 +188,12 @@ type UserOperationResult =
 ```typescript
 function handleResult(result: UserOperationResult) {
   switch (result.type) {
-    case "USER_CREATED":
-    case "USER_UPDATED":
+    case "SUCCESS_USER_CREATED":
+    case "SUCCESS_USER_UPDATED":
       return result.data; // TypeScript knows this is User
-    case "USER_NOT_FOUND":
-    case "VALIDATION_ERROR":
-    case "PERMISSION_DENIED":
+    case "ERROR_USER_NOT_FOUND":
+    case "ERROR_VALIDATION":
+    case "ERROR_PERMISSION_DENIED":
       throw new Error(result.data.message);
     default:
       // TypeScript will error if we miss a case
@@ -208,17 +208,17 @@ function handleResult(result: UserOperationResult) {
 ```typescript
 async function processUserWorkflow(userId: number) {
   const userResult = await fetchUser(userId);
-  if (userResult.type !== "API_SUCCESS") {
+  if (userResult.type !== "SUCCESS_API") {
     return userResult; // Propagate error
   }
   
   const validationResult = validateUser(userResult.data.data);
-  if (validationResult.type !== "USER_VALID") {
+  if (validationResult.type !== "SUCCESS_USER_VALID") {
     return validationResult; // Propagate validation error
   }
   
   // Continue with valid user...
-  return Result.ok("WORKFLOW_COMPLETE", validationResult.data);
+  return Result.ok("SUCCESS_WORKFLOW_COMPLETE", validationResult.data);
 }
 ```
 
