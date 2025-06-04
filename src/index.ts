@@ -14,18 +14,18 @@ type InternalResultUnion<T extends string, D> = {
  * Internal helper type for suggested success string literals.
  * Exported via the public `SuggestedSuccessType` type alias.
  */
-type InternalSuggestedSuccessType = "success" | (string & {});
+type InternalSuggestedSuccessType = "SUCCESS" | `SUCCESS_${Uppercase<string>}`;
 
 /**
  * Internal helper type for suggested error string literals.
  * Exported via the public `SuggestedErrorType` type alias.
  */
-type InternalSuggestedErrorType = "error" | (string & {});
+type InternalSuggestedErrorType = "ERROR" | `ERROR_${Uppercase<string>}`;
 
 // --- Function Implementations ---
 
 // Overloads for the 'ok' function
-function ok<D>(data: D): InternalResultUnion<"success", D>;
+function ok<D>(data: D): InternalResultUnion<"SUCCESS", D>;
 function ok<T extends InternalSuggestedSuccessType, D>(
 	type: T,
 	data: D,
@@ -33,14 +33,14 @@ function ok<T extends InternalSuggestedSuccessType, D>(
 // Implementation of 'ok'
 function ok<T extends InternalSuggestedSuccessType, D>(
 	...args: [D] | [T, D]
-): InternalResultUnion<T | "success", D> {
+): InternalResultUnion<T | "SUCCESS", D> {
 	// The implementation's return type covers both overloads
 	if (args.length === 1) {
 		// Corresponds to: ok<D>(data: D)
-		// Here, T is effectively "success" from the perspective of the wider return type,
-		// but within this branch, we know the type is literally "success".
+		// Here, T is effectively "SUCCESS" from the perspective of the wider return type,
+		// but within this branch, we know the type is literally "SUCCESS".
 		return {
-			type: "success",
+			type: "SUCCESS",
 			data: args[0] as D,
 		};
 	}
@@ -52,7 +52,7 @@ function ok<T extends InternalSuggestedSuccessType, D>(
 }
 
 // Overloads for the 'err' function
-function err<D>(data: D): InternalResultUnion<"error", D>;
+function err<D>(data: D): InternalResultUnion<"ERROR", D>;
 function err<T extends InternalSuggestedErrorType, D>(
 	type: T,
 	data: D,
@@ -60,12 +60,12 @@ function err<T extends InternalSuggestedErrorType, D>(
 // Implementation of 'err'
 function err<T extends InternalSuggestedErrorType, D>(
 	...args: [D] | [T, D]
-): InternalResultUnion<T | "error", D> {
+): InternalResultUnion<T | "ERROR", D> {
 	// The implementation's return type covers both overloads
 	if (args.length === 1) {
 		// Corresponds to: err<D>(data: D)
 		return {
-			type: "error",
+			type: "ERROR",
 			data: args[0] as D,
 		};
 	}
@@ -105,26 +105,24 @@ export type ResultUnion<T extends string, D> = InternalResultUnion<T, D>;
 
 /**
  * Suggested string literal types for use as the `type` field in successful `ResultUnion` objects.
- * While `Result.ok` allows any string for the type, this provides "success" as a common default
- * and allows other specific success types.
+ * Types must follow the pattern "SUCCESS" or "SUCCESS_" followed by uppercase string.
  *
  * @example
  * ```typescript
- * const res1 = Result.ok("success", { id: 1 }); // type is "success"
- * const res2 = Result.ok("USER_LOADED", { name: "Alice" }); // type is "USER_LOADED"
+ * const res1 = Result.ok("SUCCESS", { id: 1 }); // type is "SUCCESS"
+ * const res2 = Result.ok("SUCCESS_USER_LOADED", { name: "Alice" }); // type is "SUCCESS_USER_LOADED"
  * ```
  */
 export type SuggestedSuccessType = InternalSuggestedSuccessType;
 
 /**
  * Suggested string literal types for use as the `type` field in error `ResultUnion` objects.
- * While `Result.err` allows any string for the type, this provides "error" as a common default
- * and allows other specific error types.
+ * Types must follow the pattern "ERROR" or "ERROR_" followed by uppercase string.
  *
  * @example
  * ```typescript
- * const res1 = Result.err("error", { message: "default error" }); // type is "error"
- * const res2 = Result.err("NOT_FOUND", { resourceId: "abc" }); // type is "NOT_FOUND"
+ * const res1 = Result.err("ERROR", { message: "default error" }); // type is "ERROR"
+ * const res2 = Result.err("ERROR_NOT_FOUND", { resourceId: "abc" }); // type is "ERROR_NOT_FOUND"
  * ```
  */
 export type SuggestedErrorType = InternalSuggestedErrorType;
@@ -137,12 +135,12 @@ export type SuggestedErrorType = InternalSuggestedErrorType;
  * ```typescript
  * import { Result, ResultUnion } from 'tagged-result';
  *
- * function process(): ResultUnion<"PROCESSED", string> | ResultUnion<"FAILED", Error> {
+ * function process(): ResultUnion<"SUCCESS_PROCESSED", string> | ResultUnion<"ERROR_FAILED", Error> {
  *   try {
  *     const data = someOperation();
- *     return Result.ok("PROCESSED", data);
+ *     return Result.ok("SUCCESS_PROCESSED", data);
  *   } catch (e) {
- *     return Result.err("FAILED", e as Error);
+ *     return Result.err("ERROR_FAILED", e as Error);
  *   }
  * }
  * ```

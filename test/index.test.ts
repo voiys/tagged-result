@@ -7,29 +7,32 @@ describe("Result utility", () => {
 		test("should create a success result with default type", () => {
 			const result = Result.ok({ value: 42 });
 
-			expect(result.type).toBe("success");
+			expect(result.type).toBe("SUCCESS");
 			expect(result.data).toEqual({ value: 42 });
 		});
 
 		test("should create a success result with custom type", () => {
-			const result = Result.ok("USER_CREATED", { id: 123, name: "John" });
+			const result = Result.ok("SUCCESS_USER_CREATED", {
+				id: 123,
+				name: "John",
+			});
 
-			expect(result.type).toBe("USER_CREATED");
+			expect(result.type).toBe("SUCCESS_USER_CREATED");
 			expect(result.data).toEqual({ id: 123, name: "John" });
 		});
 
 		test("should handle primitive data types", () => {
-			const stringResult = Result.ok("success", "hello world");
-			const numberResult = Result.ok("COMPUTED", 42);
+			const stringResult = Result.ok("SUCCESS", "hello world");
+			const numberResult = Result.ok("SUCCESS_COMPUTED", 42);
 			const booleanResult = Result.ok(true);
 
-			expect(stringResult.type).toBe("success");
+			expect(stringResult.type).toBe("SUCCESS");
 			expect(stringResult.data).toBe("hello world");
 
-			expect(numberResult.type).toBe("COMPUTED");
+			expect(numberResult.type).toBe("SUCCESS_COMPUTED");
 			expect(numberResult.data).toBe(42);
 
-			expect(booleanResult.type).toBe("success");
+			expect(booleanResult.type).toBe("SUCCESS");
 			expect(booleanResult.data).toBe(true);
 		});
 	});
@@ -38,17 +41,17 @@ describe("Result utility", () => {
 		test("should create an error result with default type", () => {
 			const result = Result.err({ message: "Something went wrong" });
 
-			expect(result.type).toBe("error");
+			expect(result.type).toBe("ERROR");
 			expect(result.data).toEqual({ message: "Something went wrong" });
 		});
 
 		test("should create an error result with custom type", () => {
-			const result = Result.err("VALIDATION_ERROR", {
+			const result = Result.err("ERROR_VALIDATION", {
 				field: "email",
 				message: "Invalid format",
 			});
 
-			expect(result.type).toBe("VALIDATION_ERROR");
+			expect(result.type).toBe("ERROR_VALIDATION");
 			expect(result.data).toEqual({
 				field: "email",
 				message: "Invalid format",
@@ -57,9 +60,9 @@ describe("Result utility", () => {
 
 		test("should handle Error objects", () => {
 			const error = new Error("Network timeout");
-			const result = Result.err("NETWORK_ERROR", error);
+			const result = Result.err("ERROR_NETWORK", error);
 
-			expect(result.type).toBe("NETWORK_ERROR");
+			expect(result.type).toBe("ERROR_NETWORK");
 			expect(result.data).toBe(error);
 		});
 	});
@@ -67,30 +70,30 @@ describe("Result utility", () => {
 	describe("Type discrimination", () => {
 		test("should allow type discrimination in conditional logic", () => {
 			type ProcessResult =
-				| ResultUnion<"PROCESSED", { result: string }>
-				| ResultUnion<"FAILED", { error: string }>;
+				| ResultUnion<"SUCCESS_PROCESSED", { result: string }>
+				| ResultUnion<"ERROR_FAILED", { error: string }>;
 
-			const successResult: ProcessResult = Result.ok("PROCESSED", {
+			const successResult: ProcessResult = Result.ok("SUCCESS_PROCESSED", {
 				result: "done",
 			});
-			const errorResult: ProcessResult = Result.err("FAILED", {
+			const errorResult: ProcessResult = Result.err("ERROR_FAILED", {
 				error: "timeout",
 			});
 
 			// Test success case
-			if (successResult.type === "PROCESSED") {
+			if (successResult.type === "SUCCESS_PROCESSED") {
 				expect(successResult.data.result).toBe("done");
 				// TypeScript should know this is { result: string }
 			} else {
-				expect.fail("Should be PROCESSED type");
+				expect.fail("Should be SUCCESS_PROCESSED type");
 			}
 
 			// Test error case
-			if (errorResult.type === "FAILED") {
+			if (errorResult.type === "ERROR_FAILED") {
 				expect(errorResult.data.error).toBe("timeout");
 				// TypeScript should know this is { error: string }
 			} else {
-				expect.fail("Should be FAILED type");
+				expect.fail("Should be ERROR_FAILED type");
 			}
 		});
 	});
@@ -99,29 +102,29 @@ describe("Result utility", () => {
 		function processUser(
 			id: number,
 		):
-			| ResultUnion<"USER_FOUND", { name: string; email: string }>
-			| ResultUnion<"USER_NOT_FOUND", { id: number }> {
+			| ResultUnion<"SUCCESS_USER_FOUND", { name: string; email: string }>
+			| ResultUnion<"ERROR_USER_NOT_FOUND", { id: number }> {
 			if (id === 123) {
-				return Result.ok("USER_FOUND", {
+				return Result.ok("SUCCESS_USER_FOUND", {
 					name: "John Doe",
 					email: "john@example.com",
 				});
 			}
-			return Result.err("USER_NOT_FOUND", { id });
+			return Result.err("ERROR_USER_NOT_FOUND", { id });
 		}
 
 		test("should work in realistic function scenarios", () => {
 			const foundUser = processUser(123);
 			const notFoundUser = processUser(999);
 
-			expect(foundUser.type).toBe("USER_FOUND");
-			if (foundUser.type === "USER_FOUND") {
+			expect(foundUser.type).toBe("SUCCESS_USER_FOUND");
+			if (foundUser.type === "SUCCESS_USER_FOUND") {
 				expect(foundUser.data.name).toBe("John Doe");
 				expect(foundUser.data.email).toBe("john@example.com");
 			}
 
-			expect(notFoundUser.type).toBe("USER_NOT_FOUND");
-			if (notFoundUser.type === "USER_NOT_FOUND") {
+			expect(notFoundUser.type).toBe("ERROR_USER_NOT_FOUND");
+			if (notFoundUser.type === "ERROR_USER_NOT_FOUND") {
 				expect(notFoundUser.data.id).toBe(999);
 			}
 		});
@@ -129,29 +132,29 @@ describe("Result utility", () => {
 		function parseNumber(
 			input: string,
 		):
-			| ResultUnion<"PARSED", number>
-			| ResultUnion<"PARSE_ERROR", { input: string; reason: string }> {
+			| ResultUnion<"SUCCESS_PARSED", number>
+			| ResultUnion<"ERROR_PARSE_ERROR", { input: string; reason: string }> {
 			const num = Number(input);
 			if (Number.isNaN(num)) {
-				return Result.err("PARSE_ERROR", {
+				return Result.err("ERROR_PARSE_ERROR", {
 					input,
 					reason: "Not a valid number",
 				});
 			}
-			return Result.ok("PARSED", num);
+			return Result.ok("SUCCESS_PARSED", num);
 		}
 
 		test("should handle parsing scenarios", () => {
 			const validParse = parseNumber("42");
 			const invalidParse = parseNumber("not-a-number");
 
-			expect(validParse.type).toBe("PARSED");
-			if (validParse.type === "PARSED") {
+			expect(validParse.type).toBe("SUCCESS_PARSED");
+			if (validParse.type === "SUCCESS_PARSED") {
 				expect(validParse.data).toBe(42);
 			}
 
-			expect(invalidParse.type).toBe("PARSE_ERROR");
-			if (invalidParse.type === "PARSE_ERROR") {
+			expect(invalidParse.type).toBe("ERROR_PARSE_ERROR");
+			if (invalidParse.type === "ERROR_PARSE_ERROR") {
 				expect(invalidParse.data.input).toBe("not-a-number");
 				expect(invalidParse.data.reason).toBe("Not a valid number");
 			}
@@ -165,25 +168,28 @@ describe("README Examples", () => {
 			const success = Result.ok({ id: 123, name: "Alice" });
 			const error = Result.err({ message: "Something went wrong" });
 
-			expect(success.type).toBe("success");
+			expect(success.type).toBe("SUCCESS");
 			expect(success.data).toEqual({ id: 123, name: "Alice" });
 
-			expect(error.type).toBe("error");
+			expect(error.type).toBe("ERROR");
 			expect(error.data).toEqual({ message: "Something went wrong" });
 		});
 
 		test("should work with custom tagged variants (descriptive overload)", () => {
-			const tagged = Result.ok("USER_CREATED", { id: 123, name: "Alice" });
-			const failure = Result.err("VALIDATION_FAILED", { field: "email" });
+			const tagged = Result.ok("SUCCESS_USER_CREATED", {
+				id: 123,
+				name: "Alice",
+			});
+			const failure = Result.err("ERROR_VALIDATION_FAILED", { field: "email" });
 
-			expect(tagged.type).toBe("USER_CREATED");
+			expect(tagged.type).toBe("SUCCESS_USER_CREATED");
 			expect(tagged.data).toEqual({ id: 123, name: "Alice" });
 
-			expect(failure.type).toBe("VALIDATION_FAILED");
+			expect(failure.type).toBe("ERROR_VALIDATION_FAILED");
 			expect(failure.data).toEqual({ field: "email" });
 
 			// TypeScript narrows automatically
-			if (tagged.type === "USER_CREATED") {
+			if (tagged.type === "SUCCESS_USER_CREATED") {
 				expect(tagged.data.name).toBe("Alice"); // TypeScript knows this is string
 			}
 		});
@@ -191,26 +197,26 @@ describe("README Examples", () => {
 
 	describe("API Reference Examples", () => {
 		test("Result.ok with default and custom types", () => {
-			// Using default "success" type
+			// Using default "SUCCESS" type
 			const result1 = Result.ok({ value: 42 });
-			expect(result1.type).toBe("success");
+			expect(result1.type).toBe("SUCCESS");
 			expect(result1.data).toEqual({ value: 42 });
 
 			// Using custom type
-			const result2 = Result.ok("DATA_LOADED", { items: [] });
-			expect(result2.type).toBe("DATA_LOADED");
+			const result2 = Result.ok("SUCCESS_DATA_LOADED", { items: [] });
+			expect(result2.type).toBe("SUCCESS_DATA_LOADED");
 			expect(result2.data).toEqual({ items: [] });
 		});
 
 		test("Result.err with default and custom types", () => {
-			// Using default "error" type
+			// Using default "ERROR" type
 			const result1 = Result.err({ message: "Something went wrong" });
-			expect(result1.type).toBe("error");
+			expect(result1.type).toBe("ERROR");
 			expect(result1.data).toEqual({ message: "Something went wrong" });
 
 			// Using custom type
-			const result2 = Result.err("NOT_FOUND", { resourceId: "user-123" });
-			expect(result2.type).toBe("NOT_FOUND");
+			const result2 = Result.err("ERROR_NOT_FOUND", { resourceId: "user-123" });
+			expect(result2.type).toBe("ERROR_NOT_FOUND");
 			expect(result2.data).toEqual({ resourceId: "user-123" });
 		});
 	});
@@ -220,9 +226,9 @@ describe("README Examples", () => {
 		function parseNumber(input: string) {
 			const num = Number.parseInt(input, 10);
 			if (Number.isNaN(num)) {
-				return Result.err("INVALID_NUMBER", { input });
+				return Result.err("ERROR_INVALID_NUMBER", { input });
 			}
-			return Result.ok("PARSED", { value: num });
+			return Result.ok("SUCCESS_PARSED", { value: num });
 		}
 
 		interface UserData {
@@ -234,25 +240,25 @@ describe("README Examples", () => {
 		function validateUser(
 			data: UserData,
 		):
-			| ResultUnion<"VALID", { id: number }>
-			| ResultUnion<"INVALID", { error: string }> {
+			| ResultUnion<"SUCCESS_VALID", { id: number }>
+			| ResultUnion<"ERROR_INVALID", { error: string }> {
 			if (!data.id || typeof data.id !== "number") {
-				return Result.err("INVALID", { error: "ID must be a number" });
+				return Result.err("ERROR_INVALID", { error: "ID must be a number" });
 			}
-			return Result.ok("VALID", { id: data.id });
+			return Result.ok("SUCCESS_VALID", { id: data.id });
 		}
 
 		test("parseNumber function from README", () => {
 			const validResult = parseNumber("42");
 			const invalidResult = parseNumber("abc");
 
-			expect(validResult.type).toBe("PARSED");
-			if (validResult.type === "PARSED") {
+			expect(validResult.type).toBe("SUCCESS_PARSED");
+			if (validResult.type === "SUCCESS_PARSED") {
 				expect(validResult.data.value).toBe(42);
 			}
 
-			expect(invalidResult.type).toBe("INVALID_NUMBER");
-			if (invalidResult.type === "INVALID_NUMBER") {
+			expect(invalidResult.type).toBe("ERROR_INVALID_NUMBER");
+			if (invalidResult.type === "ERROR_INVALID_NUMBER") {
 				expect(invalidResult.data.input).toBe("abc");
 			}
 		});
@@ -264,13 +270,13 @@ describe("README Examples", () => {
 			const validResult = validateUser(validData);
 			const invalidResult = validateUser(invalidData);
 
-			expect(validResult.type).toBe("VALID");
-			if (validResult.type === "VALID") {
+			expect(validResult.type).toBe("SUCCESS_VALID");
+			if (validResult.type === "SUCCESS_VALID") {
 				expect(validResult.data.id).toBe(123);
 			}
 
-			expect(invalidResult.type).toBe("INVALID");
-			if (invalidResult.type === "INVALID") {
+			expect(invalidResult.type).toBe("ERROR_INVALID");
+			if (invalidResult.type === "ERROR_INVALID") {
 				expect(invalidResult.data.error).toBe("ID must be a number");
 			}
 		});
