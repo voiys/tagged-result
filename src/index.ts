@@ -2,6 +2,22 @@
 // (These are not directly exported but are used by the exported types/functions)
 
 /**
+ * Internal helper type for suggested success string literals.
+ * Exported via the public `SuggestedSuccessType` type alias.
+ */
+type InternalSuggestedSuccessType<T extends Uppercase<string>> =
+	| "SUCCESS"
+	| `SUCCESS_${Uppercase<T>}`;
+
+/**
+ * Internal helper type for suggested error string literals.
+ * Exported via the public `SuggestedErrorType` type alias.
+ */
+type InternalSuggestedErrorType<T extends Uppercase<string>> =
+	| "ERROR"
+	| `ERROR_${Uppercase<T>}`;
+
+/**
  * The internal representation of the result union.
  * Exported via the public `ResultType` type alias.
  */
@@ -10,29 +26,17 @@ type InternalResultType<T extends string, D> = {
 	data: D;
 };
 
-/**
- * Internal helper type for suggested success string literals.
- * Exported via the public `SuggestedSuccessType` type alias.
- */
-type InternalSuggestedSuccessType = "SUCCESS" | `SUCCESS_${Uppercase<string>}`;
-
-/**
- * Internal helper type for suggested error string literals.
- * Exported via the public `SuggestedErrorType` type alias.
- */
-type InternalSuggestedErrorType = "ERROR" | `ERROR_${Uppercase<string>}`;
-
 // --- Function Implementations ---
 
 // Overloads for the 'ok' function
 function ok<D>(data: D): InternalResultType<"SUCCESS", D>;
 function ok<T extends Uppercase<string>, D>(
-	type: T extends Uppercase<T> ? T : never,
+	type: T,
 	data: D,
 ): InternalResultType<`SUCCESS_${T}`, D>;
 // Implementation of 'ok'
 function ok<T extends Uppercase<string>, D>(
-	...args: [D] | [T extends Uppercase<T> ? T : never, D]
+	...args: [D] | [T, D]
 ): InternalResultType<"SUCCESS" | `SUCCESS_${T}`, D> {
 	if (args.length === 1) {
 		// Corresponds to: ok<D>(data: D)
@@ -101,31 +105,50 @@ function err<T extends Uppercase<string>, D>(
  * }
  * ```
  */
-export type ResultType<T extends string, D> = InternalResultType<T, D>;
+export type ResultType<T extends Uppercase<string>, D> = InternalResultType<
+	T extends InternalSuggestedSuccessType<T>
+		? InternalSuggestedSuccessType<T>
+		: InternalSuggestedErrorType<T>,
+	D
+>;
 
 /**
- * Suggested string literal types for use as the `type` field in successful `ResultType` objects.
- * Types must follow the pattern "SUCCESS" or "SUCCESS_" followed by uppercase string.
+ * A specialized version of ResultType specifically for success outcomes.
+ * The type parameter will automatically be prefixed with "SUCCESS_" or default to "SUCCESS".
+ *
+ * @template T - The string literal representing the specific success type (e.g., "USER_CREATED", "DATA_LOADED")
+ * @template D - The type of the data payload associated with this success result
  *
  * @example
  * ```typescript
- * const res1 = Result.ok({ id: 1 }); // type is "SUCCESS"
- * const res2 = Result.ok("USER_LOADED", { name: "Alice" }); // type is "SUCCESS_USER_LOADED"
+ * function createUser(): SuccessResultType<"USER_CREATED", { id: number, name: string }> {
+ *   return Result.ok("USER_CREATED", { id: 123, name: "Alice" });
+ * }
  * ```
  */
-export type SuggestedSuccessType = InternalSuggestedSuccessType;
+export type SuccessResultType<
+	T extends Uppercase<string>,
+	D,
+> = InternalResultType<T extends "" ? "SUCCESS" : `SUCCESS_${Uppercase<T>}`, D>;
 
 /**
- * Suggested string literal types for use as the `type` field in error `ResultType` objects.
- * Types must follow the pattern "ERROR" or "ERROR_" followed by uppercase string.
+ * A specialized version of ResultType specifically for error outcomes.
+ * The type parameter will automatically be prefixed with "ERROR_" or default to "ERROR".
+ *
+ * @template T - The string literal representing the specific error type (e.g., "VALIDATION_FAILED", "NOT_FOUND")
+ * @template D - The type of the data payload associated with this error result
  *
  * @example
  * ```typescript
- * const res1 = Result.err({ message: "default error" }); // type is "ERROR"
- * const res2 = Result.err("NOT_FOUND", { resourceId: "abc" }); // type is "ERROR_NOT_FOUND"
+ * function validateUser(): ErrorResultType<"VALIDATION_FAILED", { field: string, message: string }> {
+ *   return Result.err("VALIDATION_FAILED", { field: "email", message: "Invalid format" });
+ * }
  * ```
  */
-export type SuggestedErrorType = InternalSuggestedErrorType;
+export type ErrorResultType<
+	T extends Uppercase<string>,
+	D,
+> = InternalResultType<T extends "" ? "ERROR" : `ERROR_${Uppercase<T>}`, D>;
 
 /**
  * A utility object containing helper functions to create `ResultType` objects
