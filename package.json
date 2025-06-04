@@ -1,6 +1,6 @@
 {
 	"name": "@voiys/tagged-result",
-	"version": "1.0.0",
+	"version": "1.1.0",
 	"description": "A TypeScript utility for creating tagged result unions (success/error).",
 	"author": "voiys",
 	"license": "Unlicense",
@@ -38,7 +38,11 @@
 			}
 		}
 	},
-	"files": ["dist", "LICENSE", "README.md"],
+	"files": [
+		"dist",
+		"LICENSE",
+		"README.md"
+	],
 	"scripts": {
 		"clean": "rm -rf dist",
 		"build:types": "tsc -p tsconfig.esm.json --emitDeclarationOnly",
