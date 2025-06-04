@@ -3,9 +3,9 @@
 
 /**
  * The internal representation of the result union.
- * Exported via the public `ResultUnion` type alias.
+ * Exported via the public `ResultType` type alias.
  */
-type InternalResultUnion<T extends string, D> = {
+type InternalResultType<T extends string, D> = {
 	type: T;
 	data: D;
 };
@@ -25,15 +25,15 @@ type InternalSuggestedErrorType = "ERROR" | `ERROR_${Uppercase<string>}`;
 // --- Function Implementations ---
 
 // Overloads for the 'ok' function
-function ok<D>(data: D): InternalResultUnion<"SUCCESS", D>;
+function ok<D>(data: D): InternalResultType<"SUCCESS", D>;
 function ok<T extends InternalSuggestedSuccessType, D>(
 	type: T,
 	data: D,
-): InternalResultUnion<T, D>;
+): InternalResultType<T, D>;
 // Implementation of 'ok'
 function ok<T extends InternalSuggestedSuccessType, D>(
 	...args: [D] | [T, D]
-): InternalResultUnion<T | "SUCCESS", D> {
+): InternalResultType<T | "SUCCESS", D> {
 	// The implementation's return type covers both overloads
 	if (args.length === 1) {
 		// Corresponds to: ok<D>(data: D)
@@ -52,15 +52,15 @@ function ok<T extends InternalSuggestedSuccessType, D>(
 }
 
 // Overloads for the 'err' function
-function err<D>(data: D): InternalResultUnion<"ERROR", D>;
+function err<D>(data: D): InternalResultType<"ERROR", D>;
 function err<T extends InternalSuggestedErrorType, D>(
 	type: T,
 	data: D,
-): InternalResultUnion<T, D>;
+): InternalResultType<T, D>;
 // Implementation of 'err'
 function err<T extends InternalSuggestedErrorType, D>(
 	...args: [D] | [T, D]
-): InternalResultUnion<T | "ERROR", D> {
+): InternalResultType<T | "ERROR", D> {
 	// The implementation's return type covers both overloads
 	if (args.length === 1) {
 		// Corresponds to: err<D>(data: D)
@@ -87,7 +87,7 @@ function err<T extends InternalSuggestedErrorType, D>(
  *
  * @example
  * ```typescript
- * function doSomething(): ResultUnion<"MY_SUCCESS", { value: number }> | ResultUnion<"MY_ERROR", { message: string }> {
+ * function doSomething(): ResultType<"MY_SUCCESS", { value: number }> | ResultType<"MY_ERROR", { message: string }> {
  *   if (Math.random() > 0.5) {
  *     return Result.ok("MY_SUCCESS", { value: 42 });
  *   } else {
@@ -101,10 +101,10 @@ function err<T extends InternalSuggestedErrorType, D>(
  * }
  * ```
  */
-export type ResultUnion<T extends string, D> = InternalResultUnion<T, D>;
+export type ResultType<T extends string, D> = InternalResultType<T, D>;
 
 /**
- * Suggested string literal types for use as the `type` field in successful `ResultUnion` objects.
+ * Suggested string literal types for use as the `type` field in successful `ResultType` objects.
  * Types must follow the pattern "SUCCESS" or "SUCCESS_" followed by uppercase string.
  *
  * @example
@@ -116,7 +116,7 @@ export type ResultUnion<T extends string, D> = InternalResultUnion<T, D>;
 export type SuggestedSuccessType = InternalSuggestedSuccessType;
 
 /**
- * Suggested string literal types for use as the `type` field in error `ResultUnion` objects.
+ * Suggested string literal types for use as the `type` field in error `ResultType` objects.
  * Types must follow the pattern "ERROR" or "ERROR_" followed by uppercase string.
  *
  * @example
@@ -128,14 +128,14 @@ export type SuggestedSuccessType = InternalSuggestedSuccessType;
 export type SuggestedErrorType = InternalSuggestedErrorType;
 
 /**
- * A utility object containing helper functions to create `ResultUnion` objects
+ * A utility object containing helper functions to create `ResultType` objects
  * for representing operation outcomes (success or error).
  *
  * @example
  * ```typescript
- * import { Result, ResultUnion } from 'tagged-result';
+ * import { Result, ResultType } from 'tagged-result';
  *
- * function process(): ResultUnion<"SUCCESS_PROCESSED", string> | ResultUnion<"ERROR_FAILED", Error> {
+ * function process(): ResultType<"SUCCESS_PROCESSED", string> | ResultType<"ERROR_FAILED", Error> {
  *   try {
  *     const data = someOperation();
  *     return Result.ok("SUCCESS_PROCESSED", data);
