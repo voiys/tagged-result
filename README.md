@@ -9,7 +9,7 @@ A lightweight TypeScript utility for creating tagged result unions with excellen
 ## ✨ Features
 
 - 🧠 **Smart inference**: TypeScript automatically infers and narrows types
-- 🏷️ **Flexible tags**: Supports both generic `success`/`error` and custom tagged variants
+- 🏷️ **Automatic prefixing**: Custom tags are automatically prefixed with `SUCCESS_` or `ERROR_`
 - 🪶 **Lightweight**: Zero dependencies, minimal footprint
 
 ## 📦 Installation
@@ -33,15 +33,21 @@ bun add @voiys/tagged-result
 ## 🚀 Quick Start
 
 ```typescript
-import { Result, ResultType } from '@voiys/tagged-result';
+import { Result } from '@voiys/tagged-result';
 
 // Default success/error types
 const success = Result.ok({ id: 123, name: "Alice" });
-const error = Result.err({ message: "Something went wrong" });
+// Type: { type: "SUCCESS", data: { id: number, name: string } }
 
-// Custom tagged variants (must follow pattern)
-const tagged = Result.ok("SUCCESS_USER_CREATED", { id: 123, name: "Alice" });
-const failure = Result.err("ERROR_VALIDATION_FAILED", { field: "email" });
+const error = Result.err({ message: "Something went wrong" });
+// Type: { type: "ERROR", data: { message: string } }
+
+// Custom tagged variants (automatically prefixed)
+const tagged = Result.ok("USER_CREATED", { id: 123, name: "Alice" });
+// Type: { type: "SUCCESS_USER_CREATED", data: { id: number, name: string } }
+
+const failure = Result.err("VALIDATION", { field: "email" });
+// Type: { type: "ERROR_VALIDATION", data: { field: string } }
 
 // TypeScript narrows automatically
 if (tagged.type === "SUCCESS_USER_CREATED") {
@@ -58,11 +64,11 @@ Creates a successful result with optional custom type tag following the pattern 
 ```typescript
 // Using default "SUCCESS" type
 const result1 = Result.ok({ value: 42 });
-// Type: ResultType<"SUCCESS", { value: number }>
+// Type: SuccessResultType<"", { value: number }>
 
-// Using custom type (must follow SUCCESS pattern)
-const result2 = Result.ok("SUCCESS_DATA_LOADED", { items: [] });
-// Type: ResultType<"SUCCESS_DATA_LOADED", { items: any[] }>
+// Using custom type
+const result2 = Result.ok("DATA_LOADED", { items: [] });
+// Type: SuccessResultType<"DATA_LOADED", { items: any[] }>
 ```
 
 ### `Result.err(data)` & `Result.err(type, data)`
@@ -72,41 +78,42 @@ Creates an error result with optional custom type tag following the pattern `"ER
 ```typescript
 // Using default "ERROR" type
 const result1 = Result.err({ message: "Something went wrong" });
-// Type: ResultType<"ERROR", { message: string }>
+// Type: ErrorResultType<"", { message: string }>
 
-// Using custom type (must follow ERROR pattern)
-const result2 = Result.err("ERROR_NOT_FOUND", { resourceId: "user-123" });
-// Type: ResultType<"ERROR_NOT_FOUND", { resourceId: string }>
+// Using custom type
+const result2 = Result.err("NOT_FOUND", { resourceId: "user-123" });
+// Type: ErrorResultType<"NOT_FOUND", { resourceId: string }>
 ```
 
-### `ResultType<T, D>`
+### `SuccessResultType<T, D>` & `ErrorResultType<T, D>`
 
-The core type representing a tagged result.
+The core types representing tagged results for success and error outcomes respectively.
 
 ```typescript
-type MyResult = ResultType<"SUCCESS" | "ERROR_FAILED", { message: string }>;
+type MySuccessResult = SuccessResultType<"PROCESSED", { message: string }>;
+type MyErrorResult = ErrorResultType<"FAILED", { message: string }>;
 ```
 
 ## 🔄 Synchronous Example
 
 ```typescript
-import { Result, ResultType } from '@voiys/tagged-result';
+import { Result, SuccessResultType, ErrorResultType } from '@voiys/tagged-result';
 
 // Let TypeScript infer the return type
 function parseNumber(input: string) {
   const num = parseInt(input);
   if (isNaN(num)) {
-    return Result.err("ERROR_INVALID_NUMBER", { input });
+    return Result.err("INVALID_NUMBER", { input });
   }
-  return Result.ok("SUCCESS_PARSED", { value: num });
+  return Result.ok("PARSED", { value: num });
 }
 
 // Or force a specific return type
-function validateUser(data: any): ResultType<"SUCCESS_VALID", { id: number }> | ResultType<"ERROR_INVALID", { error: string }> {
+function validateUser(data: any): SuccessResultType<"VALID", { id: number }> | ErrorResultType<"INVALID", { error: string }> {
   if (!data.id || typeof data.id !== 'number') {
-    return Result.err("ERROR_INVALID", { error: "ID must be a number" });
+    return Result.err("INVALID", { error: "ID must be a number" });
   }
-  return Result.ok("SUCCESS_VALID", { id: data.id });
+  return Result.ok("VALID", { id: data.id });
 }
 
 // Usage
@@ -124,29 +131,29 @@ async function fetchData(url: string) {
   try {
     const response = await fetch(url);
     if (!response.ok) {
-      return Result.err("ERROR_HTTP", { status: response.status });
+      return Result.err("HTTP_ERROR", { status: response.status });
     }
     const data = await response.json();
-    return Result.ok("SUCCESS", data);
+    return Result.ok(data);
   } catch (error) {
-    return Result.err("ERROR_NETWORK", { message: error.message });
+    return Result.err("NETWORK_ERROR", { message: error.message });
   }
 }
 
 // Or force a specific return type
-async function getUser(id: number): Promise<ResultType<"SUCCESS_USER_FOUND", User> | ResultType<"ERROR_NOT_FOUND" | "ERROR", { message: string }>> {
+async function getUser(id: number): Promise<SuccessResultType<"USER_FOUND", User> | ErrorResultType<"NOT_FOUND" | "", { message: string }>> {
   try {
     const response = await fetch(`/users/${id}`);
     if (response.status === 404) {
-      return Result.err("ERROR_NOT_FOUND", { message: "User not found" });
+      return Result.err("NOT_FOUND", { message: "User not found" });
     }
     if (!response.ok) {
-      return Result.err("ERROR", { message: "Failed to fetch user" });
+      return Result.err({ message: "Failed to fetch user" });
     }
     const user = await response.json();
-    return Result.ok("SUCCESS_USER_FOUND", user);
+    return Result.ok("USER_FOUND", user);
   } catch (error) {
-    return Result.err("ERROR", { message: error.message });
+    return Result.err({ message: error.message });
   }
 }
 
@@ -171,16 +178,16 @@ switch (userResult.type) {
 // ❌ Not descriptive
 Result.err("ERROR", { message: "Failed" });
 
-// ✅ Descriptive and actionable (follows required pattern)
-Result.err("ERROR_VALIDATION_FAILED", { field: "email", message: "Invalid email format" });
+// ✅ Descriptive and actionable
+Result.err("VALIDATION_FAILED", { field: "email", message: "Invalid email format" });
 ```
 
 ### 2. Group Related Result Types 📦
 
 ```typescript
 type UserOperationResult = 
-  | ResultType<"SUCCESS_USER_CREATED" | "SUCCESS_USER_UPDATED", User>
-  | ResultType<"ERROR_USER_NOT_FOUND" | "ERROR_VALIDATION" | "ERROR_PERMISSION_DENIED", { message: string }>;
+  | SuccessResultType<"USER_CREATED" | "USER_UPDATED", User>
+  | ErrorResultType<"USER_NOT_FOUND" | "VALIDATION" | "PERMISSION_DENIED", { message: string }>;
 ```
 
 ### 3. Use Switch Statements for Exhaustive Checking ✅
@@ -208,17 +215,17 @@ function handleResult(result: UserOperationResult) {
 ```typescript
 async function processUserWorkflow(userId: number) {
   const userResult = await fetchUser(userId);
-  if (userResult.type !== "SUCCESS_API") {
+  if (userResult.type !== "SUCCESS") {
     return userResult; // Propagate error
   }
   
   const validationResult = validateUser(userResult.data.data);
-  if (validationResult.type !== "SUCCESS_USER_VALID") {
+  if (validationResult.type !== "SUCCESS_VALID") {
     return validationResult; // Propagate validation error
   }
   
   // Continue with valid user...
-  return Result.ok("SUCCESS_WORKFLOW_COMPLETE", validationResult.data);
+  return Result.ok("WORKFLOW_COMPLETE", validationResult.data);
 }
 ```
 
