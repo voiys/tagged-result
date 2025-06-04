@@ -26,42 +26,40 @@ type InternalSuggestedErrorType = "ERROR" | `ERROR_${Uppercase<string>}`;
 
 // Overloads for the 'ok' function
 function ok<D>(data: D): InternalResultType<"SUCCESS", D>;
-function ok<T extends InternalSuggestedSuccessType, D>(
-	type: T,
+function ok<T extends Uppercase<string>, D>(
+	type: T extends Uppercase<T> ? T : never,
 	data: D,
-): InternalResultType<T, D>;
+): InternalResultType<`SUCCESS_${T}`, D>;
 // Implementation of 'ok'
-function ok<T extends InternalSuggestedSuccessType, D>(
-	...args: [D] | [T, D]
-): InternalResultType<T | "SUCCESS", D> {
-	// The implementation's return type covers both overloads
+function ok<T extends Uppercase<string>, D>(
+	...args: [D] | [T extends Uppercase<T> ? T : never, D]
+): InternalResultType<"SUCCESS" | `SUCCESS_${T}`, D> {
 	if (args.length === 1) {
 		// Corresponds to: ok<D>(data: D)
-		// Here, T is effectively "SUCCESS" from the perspective of the wider return type,
-		// but within this branch, we know the type is literally "SUCCESS".
 		return {
 			type: "SUCCESS",
 			data: args[0] as D,
 		};
 	}
-	// Corresponds to: ok<T extends SuggestedSuccessType, D>(type: T, data: D)
+	// Corresponds to: ok<T extends Uppercase<string>, D>(type: T, data: D)
+	// The type is already uppercase, just add SUCCESS_ prefix
+	const prefixedType = `SUCCESS_${args[0]}` as `SUCCESS_${T}`;
 	return {
-		type: args[0] as T,
+		type: prefixedType,
 		data: args[1] as D,
 	};
 }
 
 // Overloads for the 'err' function
 function err<D>(data: D): InternalResultType<"ERROR", D>;
-function err<T extends InternalSuggestedErrorType, D>(
-	type: T,
+function err<T extends Uppercase<string>, D>(
+	type: T extends Uppercase<T> ? T : never,
 	data: D,
-): InternalResultType<T, D>;
+): InternalResultType<`ERROR_${T}`, D>;
 // Implementation of 'err'
-function err<T extends InternalSuggestedErrorType, D>(
-	...args: [D] | [T, D]
-): InternalResultType<T | "ERROR", D> {
-	// The implementation's return type covers both overloads
+function err<T extends Uppercase<string>, D>(
+	...args: [D] | [T extends Uppercase<T> ? T : never, D]
+): InternalResultType<"ERROR" | `ERROR_${T}`, D> {
 	if (args.length === 1) {
 		// Corresponds to: err<D>(data: D)
 		return {
@@ -69,9 +67,11 @@ function err<T extends InternalSuggestedErrorType, D>(
 			data: args[0] as D,
 		};
 	}
-	// Corresponds to: err<T extends SuggestedErrorType, D>(type: T, data: D)
+	// Corresponds to: err<T extends Uppercase<string>, D>(type: T, data: D)
+	// The type is already uppercase, just add ERROR_ prefix
+	const prefixedType = `ERROR_${args[0]}` as `ERROR_${T}`;
 	return {
-		type: args[0] as T,
+		type: prefixedType,
 		data: args[1] as D,
 	};
 }
@@ -87,16 +87,16 @@ function err<T extends InternalSuggestedErrorType, D>(
  *
  * @example
  * ```typescript
- * function doSomething(): ResultType<"MY_SUCCESS", { value: number }> | ResultType<"MY_ERROR", { message: string }> {
+ * function doSomething(): ResultType<"SUCCESS_MY", { value: number }> | ResultType<"ERROR_MY", { message: string }> {
  *   if (Math.random() > 0.5) {
- *     return Result.ok("MY_SUCCESS", { value: 42 });
+ *     return Result.ok("MY", { value: 42 }); // becomes "SUCCESS_MY"
  *   } else {
- *     return Result.err("MY_ERROR", { message: "Something went wrong" });
+ *     return Result.err("MY", { message: "Something went wrong" }); // becomes "ERROR_MY"
  *   }
  * }
  *
  * const result = doSomething();
- * if (result.type === "MY_SUCCESS") {
+ * if (result.type === "SUCCESS_MY") {
  *   console.log(result.data.value); // TypeScript knows this is { value: number }
  * }
  * ```
@@ -109,8 +109,8 @@ export type ResultType<T extends string, D> = InternalResultType<T, D>;
  *
  * @example
  * ```typescript
- * const res1 = Result.ok("SUCCESS", { id: 1 }); // type is "SUCCESS"
- * const res2 = Result.ok("SUCCESS_USER_LOADED", { name: "Alice" }); // type is "SUCCESS_USER_LOADED"
+ * const res1 = Result.ok({ id: 1 }); // type is "SUCCESS"
+ * const res2 = Result.ok("USER_LOADED", { name: "Alice" }); // type is "SUCCESS_USER_LOADED"
  * ```
  */
 export type SuggestedSuccessType = InternalSuggestedSuccessType;
@@ -121,8 +121,8 @@ export type SuggestedSuccessType = InternalSuggestedSuccessType;
  *
  * @example
  * ```typescript
- * const res1 = Result.err("ERROR", { message: "default error" }); // type is "ERROR"
- * const res2 = Result.err("ERROR_NOT_FOUND", { resourceId: "abc" }); // type is "ERROR_NOT_FOUND"
+ * const res1 = Result.err({ message: "default error" }); // type is "ERROR"
+ * const res2 = Result.err("NOT_FOUND", { resourceId: "abc" }); // type is "ERROR_NOT_FOUND"
  * ```
  */
 export type SuggestedErrorType = InternalSuggestedErrorType;
@@ -138,9 +138,9 @@ export type SuggestedErrorType = InternalSuggestedErrorType;
  * function process(): ResultType<"SUCCESS_PROCESSED", string> | ResultType<"ERROR_FAILED", Error> {
  *   try {
  *     const data = someOperation();
- *     return Result.ok("SUCCESS_PROCESSED", data);
+ *     return Result.ok("PROCESSED", data); // becomes "SUCCESS_PROCESSED"
  *   } catch (e) {
- *     return Result.err("ERROR_FAILED", e as Error);
+ *     return Result.err("FAILED", e as Error); // becomes "ERROR_FAILED"
  *   }
  * }
  * ```
