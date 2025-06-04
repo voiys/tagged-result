@@ -1,21 +1,4 @@
 // --- Internal Type Definitions ---
-// (These are not directly exported but are used by the exported types/functions)
-
-/**
- * Internal helper type for suggested success string literals.
- * Exported via the public `SuggestedSuccessType` type alias.
- */
-type InternalSuggestedSuccessType<T extends Uppercase<string>> =
-	| "SUCCESS"
-	| `SUCCESS_${Uppercase<T>}`;
-
-/**
- * Internal helper type for suggested error string literals.
- * Exported via the public `SuggestedErrorType` type alias.
- */
-type InternalSuggestedErrorType<T extends Uppercase<string>> =
-	| "ERROR"
-	| `ERROR_${Uppercase<T>}`;
 
 /**
  * The internal representation of the result union.
@@ -81,36 +64,6 @@ function err<T extends Uppercase<string>, D>(
 }
 
 // --- Public Exports ---
-
-/**
- * The core union type representing either a success or an error outcome.
- * Use this to type return values or variables holding results.
- *
- * @template T - The string literal representing the specific type of the result (e.g., "USER_CREATED", "VALIDATION_ERROR")
- * @template D - The type of the data payload associated with this result
- *
- * @example
- * ```typescript
- * function doSomething(): ResultType<"SUCCESS_MY", { value: number }> | ResultType<"ERROR_MY", { message: string }> {
- *   if (Math.random() > 0.5) {
- *     return Result.ok("MY", { value: 42 }); // becomes "SUCCESS_MY"
- *   } else {
- *     return Result.err("MY", { message: "Something went wrong" }); // becomes "ERROR_MY"
- *   }
- * }
- *
- * const result = doSomething();
- * if (result.type === "SUCCESS_MY") {
- *   console.log(result.data.value); // TypeScript knows this is { value: number }
- * }
- * ```
- */
-export type ResultType<T extends Uppercase<string>, D> = InternalResultType<
-	T extends InternalSuggestedSuccessType<T>
-		? InternalSuggestedSuccessType<T>
-		: InternalSuggestedErrorType<T>,
-	D
->;
 
 /**
  * A specialized version of ResultType specifically for success outcomes.
