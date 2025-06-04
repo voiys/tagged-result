@@ -33,7 +33,7 @@ bun add @voiys/tagged-result
 ## 🚀 Quick Start
 
 ```typescript
-import { Result, ResultUnion } from '@voiys/tagged-result';
+import { Result, ResultType } from '@voiys/tagged-result';
 
 // Default success/error types
 const success = Result.ok({ id: 123, name: "Alice" });
@@ -58,11 +58,11 @@ Creates a successful result with optional custom type tag following the pattern 
 ```typescript
 // Using default "SUCCESS" type
 const result1 = Result.ok({ value: 42 });
-// Type: ResultUnion<"SUCCESS", { value: number }>
+// Type: ResultType<"SUCCESS", { value: number }>
 
 // Using custom type (must follow SUCCESS pattern)
 const result2 = Result.ok("SUCCESS_DATA_LOADED", { items: [] });
-// Type: ResultUnion<"SUCCESS_DATA_LOADED", { items: any[] }>
+// Type: ResultType<"SUCCESS_DATA_LOADED", { items: any[] }>
 ```
 
 ### `Result.err(data)` & `Result.err(type, data)`
@@ -72,25 +72,25 @@ Creates an error result with optional custom type tag following the pattern `"ER
 ```typescript
 // Using default "ERROR" type
 const result1 = Result.err({ message: "Something went wrong" });
-// Type: ResultUnion<"ERROR", { message: string }>
+// Type: ResultType<"ERROR", { message: string }>
 
 // Using custom type (must follow ERROR pattern)
 const result2 = Result.err("ERROR_NOT_FOUND", { resourceId: "user-123" });
-// Type: ResultUnion<"ERROR_NOT_FOUND", { resourceId: string }>
+// Type: ResultType<"ERROR_NOT_FOUND", { resourceId: string }>
 ```
 
-### `ResultUnion<T, D>`
+### `ResultType<T, D>`
 
 The core type representing a tagged result.
 
 ```typescript
-type MyResult = ResultUnion<"SUCCESS" | "ERROR_FAILED", { message: string }>;
+type MyResult = ResultType<"SUCCESS" | "ERROR_FAILED", { message: string }>;
 ```
 
 ## 🔄 Synchronous Example
 
 ```typescript
-import { Result, ResultUnion } from '@voiys/tagged-result';
+import { Result, ResultType } from '@voiys/tagged-result';
 
 // Let TypeScript infer the return type
 function parseNumber(input: string) {
@@ -102,7 +102,7 @@ function parseNumber(input: string) {
 }
 
 // Or force a specific return type
-function validateUser(data: any): ResultUnion<"SUCCESS_VALID", { id: number }> | ResultUnion<"ERROR_INVALID", { error: string }> {
+function validateUser(data: any): ResultType<"SUCCESS_VALID", { id: number }> | ResultType<"ERROR_INVALID", { error: string }> {
   if (!data.id || typeof data.id !== 'number') {
     return Result.err("ERROR_INVALID", { error: "ID must be a number" });
   }
@@ -134,7 +134,7 @@ async function fetchData(url: string) {
 }
 
 // Or force a specific return type
-async function getUser(id: number): Promise<ResultUnion<"SUCCESS_USER_FOUND", User> | ResultUnion<"ERROR_NOT_FOUND" | "ERROR", { message: string }>> {
+async function getUser(id: number): Promise<ResultType<"SUCCESS_USER_FOUND", User> | ResultType<"ERROR_NOT_FOUND" | "ERROR", { message: string }>> {
   try {
     const response = await fetch(`/users/${id}`);
     if (response.status === 404) {
@@ -179,8 +179,8 @@ Result.err("ERROR_VALIDATION_FAILED", { field: "email", message: "Invalid email 
 
 ```typescript
 type UserOperationResult = 
-  | ResultUnion<"SUCCESS_USER_CREATED" | "SUCCESS_USER_UPDATED", User>
-  | ResultUnion<"ERROR_USER_NOT_FOUND" | "ERROR_VALIDATION" | "ERROR_PERMISSION_DENIED", { message: string }>;
+  | ResultType<"SUCCESS_USER_CREATED" | "SUCCESS_USER_UPDATED", User>
+  | ResultType<"ERROR_USER_NOT_FOUND" | "ERROR_VALIDATION" | "ERROR_PERMISSION_DENIED", { message: string }>;
 ```
 
 ### 3. Use Switch Statements for Exhaustive Checking ✅
