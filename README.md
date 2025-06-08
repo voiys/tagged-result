@@ -64,7 +64,7 @@ Creates a successful result with optional custom type tag following the pattern 
 ```typescript
 // Using default "SUCCESS" type
 const result1 = Result.ok({ value: 42 });
-// Type: SuccessResultType<"", { value: number }>
+// Type: DefaultSuccessResultType<{ value: number }>
 
 // Using custom type
 const result2 = Result.ok("DATA_LOADED", { items: [] });
@@ -78,20 +78,37 @@ Creates an error result with optional custom type tag following the pattern `"ER
 ```typescript
 // Using default "ERROR" type
 const result1 = Result.err({ message: "Something went wrong" });
-// Type: ErrorResultType<"", { message: string }>
+// Type: DefaultErrorResultType<{ message: string }>
 
 // Using custom type
 const result2 = Result.err("NOT_FOUND", { resourceId: "user-123" });
 // Type: ErrorResultType<"NOT_FOUND", { resourceId: string }>
 ```
 
-### `SuccessResultType<T, D>` & `ErrorResultType<T, D>`
+### Type Definitions
 
-The core types representing tagged results for success and error outcomes respectively.
+#### `SuccessResultType<T, D>` & `ErrorResultType<T, D>`
+
+The core types for tagged results with SUCCESS_* and ERROR_* variants.
 
 ```typescript
 type MySuccessResult = SuccessResultType<"PROCESSED", { message: string }>;
+// Results in: { type: "SUCCESS_PROCESSED", data: { message: string } }
+
 type MyErrorResult = ErrorResultType<"FAILED", { message: string }>;
+// Results in: { type: "ERROR_FAILED", data: { message: string } }
+```
+
+#### `DefaultSuccessResultType<D>` & `DefaultErrorResultType<D>`
+
+Simplified types for default SUCCESS and ERROR results.
+
+```typescript
+type MyDefaultSuccess = DefaultSuccessResultType<{ message: string }>;
+// Results in: { type: "SUCCESS", data: { message: string } }
+
+type MyDefaultError = DefaultErrorResultType<{ message: string }>;
+// Results in: { type: "ERROR", data: { message: string } }
 ```
 
 ## 🔄 Synchronous Example
@@ -141,7 +158,7 @@ async function fetchData(url: string) {
 }
 
 // Or force a specific return type
-async function getUser(id: number): Promise<SuccessResultType<"USER_FOUND", User> | ErrorResultType<"NOT_FOUND" | "", { message: string }>> {
+async function getUser(id: number): Promise<SuccessResultType<"USER_FOUND", User> | ErrorResultType<"NOT_FOUND", { message: string }> | DefaultErrorResultType<{ message: string }>> {
   try {
     const response = await fetch(`/users/${id}`);
     if (response.status === 404) {
@@ -187,7 +204,8 @@ Result.err("VALIDATION_FAILED", { field: "email", message: "Invalid email format
 ```typescript
 type UserOperationResult = 
   | SuccessResultType<"USER_CREATED" | "USER_UPDATED", User>
-  | ErrorResultType<"USER_NOT_FOUND" | "VALIDATION" | "PERMISSION_DENIED", { message: string }>;
+  | ErrorResultType<"USER_NOT_FOUND" | "VALIDATION" | "PERMISSION_DENIED", { message: string }>
+  | DefaultErrorResultType<{ message: string }>;
 ```
 
 ### 3. Use Switch Statements for Exhaustive Checking ✅
@@ -201,6 +219,7 @@ function handleResult(result: UserOperationResult) {
     case "ERROR_USER_NOT_FOUND":
     case "ERROR_VALIDATION":
     case "ERROR_PERMISSION_DENIED":
+    case "ERROR":
       throw new Error(result.data.message);
     default:
       // TypeScript will error if we miss a case

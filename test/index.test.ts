@@ -445,13 +445,13 @@ describe("README Examples", () => {
 		test("exhaustive checking with switch statements", () => {
 			type UserOperationResult =
 				| SuccessResultType<
-						"USER_CREATED" | "USER_UPDATED",
-						{ id: number; name: string }
-				  >
+					"USER_CREATED" | "USER_UPDATED",
+					{ id: number; name: string }
+				>
 				| ErrorResultType<
-						"USER_NOT_FOUND" | "VALIDATION_ERROR" | "PERMISSION_DENIED",
-						{ message: string }
-				  >;
+					"USER_NOT_FOUND" | "VALIDATION_ERROR" | "PERMISSION_DENIED",
+					{ message: string }
+				>;
 
 			function handleResult(result: UserOperationResult) {
 				switch (result.type) {

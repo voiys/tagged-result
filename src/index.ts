@@ -12,11 +12,11 @@ type ResultType<T extends string, D> = {
 // --- Function Implementations ---
 
 // Overloads for the 'ok' function
-function ok<D>(data: D): ResultType<"SUCCESS", D>;
+function ok<D>(data: D): DefaultSuccessResultType<D>;
 function ok<T extends Uppercase<string>, D>(
 	type: T,
 	data: D,
-): ResultType<`SUCCESS_${T}`, D>;
+): SuccessResultType<T, D>;
 // Implementation of 'ok'
 function ok<T extends Uppercase<string>, D>(
 	...args: [D] | [T, D]
@@ -38,11 +38,11 @@ function ok<T extends Uppercase<string>, D>(
 }
 
 // Overloads for the 'err' function
-function err<D>(data: D): ResultType<"ERROR", D>;
+function err<D>(data: D): DefaultErrorResultType<D>;
 function err<T extends Uppercase<string>, D>(
 	type: T extends Uppercase<T> ? T : never,
 	data: D,
-): ResultType<`ERROR_${T}`, D>;
+): ErrorResultType<T, D>;
 // Implementation of 'err'
 function err<T extends Uppercase<string>, D>(
 	...args: [D] | [T extends Uppercase<T> ? T : never, D]
@@ -66,10 +66,10 @@ function err<T extends Uppercase<string>, D>(
 // --- Public Exports ---
 
 /**
- * A specialized version of ResultType specifically for success outcomes.
- * The type parameter will automatically be prefixed with "SUCCESS_" or default to "SUCCESS".
+ * A specialized version of ResultType for success outcomes with SUCCESS_* variants.
+ * The type parameter represents the specific success type suffix.
  *
- * @template T - The string literal representing the specific success type (e.g., "USER_CREATED", "DATA_LOADED")
+ * @template T - The string literal representing the specific success type suffix (e.g., "USER_CREATED", "DATA_LOADED")
  * @template D - The type of the data payload associated with this success result
  *
  * @example
@@ -82,13 +82,13 @@ function err<T extends Uppercase<string>, D>(
 export type SuccessResultType<
 	T extends Uppercase<string>,
 	D,
-> = ResultType<T extends "" ? "SUCCESS" : `SUCCESS_${Uppercase<T>}`, D>;
+> = ResultType<`SUCCESS_${T}`, D>;
 
 /**
- * A specialized version of ResultType specifically for error outcomes.
- * The type parameter will automatically be prefixed with "ERROR_" or default to "ERROR".
+ * A specialized version of ResultType for error outcomes with ERROR_* variants.
+ * The type parameter represents the specific error type suffix.
  *
- * @template T - The string literal representing the specific error type (e.g., "VALIDATION_FAILED", "NOT_FOUND")
+ * @template T - The string literal representing the specific error type suffix (e.g., "VALIDATION_FAILED", "NOT_FOUND")
  * @template D - The type of the data payload associated with this error result
  *
  * @example
@@ -101,7 +101,37 @@ export type SuccessResultType<
 export type ErrorResultType<
 	T extends Uppercase<string>,
 	D,
-> = ResultType<T extends "" ? "ERROR" : `ERROR_${Uppercase<T>}`, D>;
+> = ResultType<`ERROR_${T}`, D>;
+
+/**
+ * A specialized version of ResultType for default success outcomes.
+ * This type hardcodes the "SUCCESS" type, matching the single-argument ok() function.
+ *
+ * @template D - The type of the data payload associated with this success result
+ *
+ * @example
+ * ```typescript
+ * function processData(): DefaultSuccessResultType<string> {
+ *   return Result.ok("Data processed successfully");
+ * }
+ * ```
+ */
+export type DefaultSuccessResultType<D> = ResultType<"SUCCESS", D>;
+
+/**
+ * A specialized version of ResultType for default error outcomes.
+ * This type hardcodes the "ERROR" type, matching the single-argument err() function.
+ *
+ * @template D - The type of the data payload associated with this error result
+ *
+ * @example
+ * ```typescript
+ * function processData(): DefaultErrorResultType<Error> {
+ *   return Result.err(new Error("Processing failed"));
+ * }
+ * ```
+ */
+export type DefaultErrorResultType<D> = ResultType<"ERROR", D>;
 
 /**
  * A utility object containing helper functions to create `ResultType` objects
