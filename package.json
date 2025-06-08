@@ -1,6 +1,6 @@
 {
 	"name": "@voiys/tagged-result",
-	"version": "1.1.0",
+	"version": "1.2.0",
 	"description": "A TypeScript utility for creating tagged result unions (success/error).",
 	"author": "voiys",
 	"license": "Unlicense",
