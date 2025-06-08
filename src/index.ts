@@ -4,7 +4,7 @@
  * The internal representation of the result union.
  * Exported via the public `ResultType` type alias.
  */
-type ResultType<T extends string, D> = {
+type ResultType<D, T extends string = ''> = {
 	type: T;
 	data: D;
 };
@@ -12,15 +12,15 @@ type ResultType<T extends string, D> = {
 // --- Function Implementations ---
 
 // Overloads for the 'ok' function
-function ok<D>(data: D): ResultType<"SUCCESS", D>;
+function ok<D>(data: D): ResultType<D, "SUCCESS">;
 function ok<T extends Uppercase<string>, D>(
 	type: T,
 	data: D,
-): ResultType<`SUCCESS_${T}`, D>;
+): ResultType<D, `SUCCESS_${T}`>;
 // Implementation of 'ok'
 function ok<T extends Uppercase<string>, D>(
 	...args: [D] | [T, D]
-): ResultType<"SUCCESS" | `SUCCESS_${T}`, D> {
+): ResultType<D, "SUCCESS" | `SUCCESS_${T}`> {
 	if (args.length === 1) {
 		// Corresponds to: ok<D>(data: D)
 		return {
@@ -38,15 +38,15 @@ function ok<T extends Uppercase<string>, D>(
 }
 
 // Overloads for the 'err' function
-function err<D>(data: D): ResultType<"ERROR", D>;
+function err<D>(data: D): ResultType<D, "ERROR">;
 function err<T extends Uppercase<string>, D>(
 	type: T extends Uppercase<T> ? T : never,
 	data: D,
-): ResultType<`ERROR_${T}`, D>;
+): ResultType<D, `ERROR_${T}`>;
 // Implementation of 'err'
 function err<T extends Uppercase<string>, D>(
 	...args: [D] | [T extends Uppercase<T> ? T : never, D]
-): ResultType<"ERROR" | `ERROR_${T}`, D> {
+): ResultType<D, "ERROR" | `ERROR_${T}`> {
 	if (args.length === 1) {
 		// Corresponds to: err<D>(data: D)
 		return {
@@ -82,7 +82,7 @@ function err<T extends Uppercase<string>, D>(
 export type SuccessResultType<
 	T extends Uppercase<string>,
 	D,
-> = ResultType<T extends "" ? "SUCCESS" : `SUCCESS_${Uppercase<T>}`, D>;
+> = ResultType<D, T extends "" ? "SUCCESS" : `SUCCESS_${Uppercase<T>}`>;
 
 /**
  * A specialized version of ResultType specifically for error outcomes.
@@ -101,7 +101,7 @@ export type SuccessResultType<
 export type ErrorResultType<
 	T extends Uppercase<string>,
 	D,
-> = ResultType<T extends "" ? "ERROR" : `ERROR_${Uppercase<T>}`, D>;
+> = ResultType<D, T extends "" ? "ERROR" : `ERROR_${Uppercase<T>}`>;
 
 /**
  * A utility object containing helper functions to create `ResultType` objects
@@ -111,7 +111,7 @@ export type ErrorResultType<
  * ```typescript
  * import { Result, ResultType } from 'tagged-result';
  *
- * function process(): ResultType<"SUCCESS_PROCESSED", string> | ResultType<"ERROR_FAILED", Error> {
+ * function process(): ResultType<string, "SUCCESS_PROCESSED"> | ResultType<Error, "ERROR_FAILED"> {
  *   try {
  *     const data = someOperation();
  *     return Result.ok("PROCESSED", data); // becomes "SUCCESS_PROCESSED"
